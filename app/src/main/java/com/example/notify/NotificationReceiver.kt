@@ -8,7 +8,6 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -46,50 +45,36 @@ abstract class NotificationReceiver : BroadcastReceiver() {
         Log.d("NotificationScheduler", "PendingIntent created.")
 
         // Schedule the alarm
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    timeInMillis,
-                    pendingIntent
-                )
-                Log.d("NotificationScheduler", "setExactAndAllowWhileIdle called.")
-            } catch (e: SecurityException) {
-                Log.e("NotificationScheduler", "SecurityException scheduling alarm: ${e.message}", e)
-                // This could indicate missing SCHEDULE_EXACT_ALARM permission or issue with battery optimization settings
-            } catch (e: Exception) {
-                Log.e("NotificationScheduler", "Error scheduling alarm: ${e.message}", e)
-            }
-        } else {
-            try {
-                alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP,
-                    timeInMillis,
-                    pendingIntent
-                )
-                Log.d("NotificationScheduler", "setExact called.")
-            } catch (e: Exception) {
-                Log.e("NotificationScheduler", "Error scheduling alarm (pre-M): ${e.message}", e)
-            }
+        try {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                timeInMillis,
+                pendingIntent
+            )
+            Log.d("NotificationScheduler", "setExactAndAllowWhileIdle called.")
+        } catch (e: SecurityException) {
+            Log.e("NotificationScheduler", "SecurityException scheduling alarm: ${e.message}", e)
+            // This could indicate missing SCHEDULE_EXACT_ALARM permission or issue with battery optimization settings
+        } catch (e: Exception) {
+            Log.e("NotificationScheduler", "Error scheduling alarm: ${e.message}", e)
         }
         Log.d("NotificationScheduler", "Alarm scheduling attempt finished.")
     }
 
     private fun createNotificationChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Task Notifications"
-            val descriptionText = "Notifications for scheduled tasks"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(
-                NotificationScheduler.CHANNEL_ID, // Use the same CHANNEL_ID from NotificationScheduler
-                name,
-                importance
-            ).apply {
-                description = descriptionText
-            }
-            val notificationManager: NotificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+        val name = "Task Notifications"
+        val descriptionText = "Notifications for scheduled tasks"
+        val importance = NotificationManager.IMPORTANCE_DEFAULT
+        val channel = NotificationChannel(
+            NotificationScheduler.CHANNEL_ID, // Use the same CHANNEL_ID from NotificationScheduler
+            name,
+            importance
+        ).apply {
+            description = descriptionText
         }
+        val notificationManager: NotificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
     }
 }

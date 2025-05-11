@@ -20,7 +20,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,11 +31,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.notify.NotificationScheduler
 import com.example.notify.data.DatabaseProvider
 import com.example.notify.data.Task
 import com.example.notify.ui.viewmodel.TaskViewModel
-import kotlinx.coroutines.launch
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +41,6 @@ import java.util.Calendar
 fun Create(
     modifier: Modifier = Modifier,
     taskViewModel: TaskViewModel = viewModel(factory = TaskViewModelFactory(LocalContext.current)),
-    notificationScheduler: NotificationScheduler = NotificationScheduler
 ) {
     var taskTitle by remember { mutableStateOf("") }
     var taskDetails by remember { mutableStateOf("") }
@@ -85,7 +81,6 @@ fun Create(
         )
     }
 
-    val allTasks by taskViewModel.allTasks.collectAsState()
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -137,47 +132,6 @@ fun Create(
             Button(
                 onClick = {
                     Log.d("CreateScreen", "SET button clicked")
-
-                    if (taskTitle.isNotBlank() && selectedDate != null && selectedTime != null) {
-                        val taskCalendar = Calendar.getInstance().apply {
-                            set(
-                                selectedDate!!.get(Calendar.YEAR),
-                                selectedDate!!.get(Calendar.MONTH),
-                                selectedDate!!.get(Calendar.DAY_OF_MONTH)
-                            )
-                            set(Calendar.HOUR_OF_DAY, selectedTime!!.get(Calendar.HOUR_OF_DAY))
-                            set(Calendar.MINUTE, selectedTime!!.get(Calendar.MINUTE))
-                            set(Calendar.SECOND, 0)
-                        }
-
-                        val task = Task(
-                            title = taskTitle,
-                            details = taskDetails,
-                            scheduledTimeMillis = taskCalendar.timeInMillis
-                        )
-
-                        taskViewModel.insertTask(task)
-
-                        coroutineScope.launch {
-                            notificationScheduler.scheduleNotification(
-                                context,
-                                task.title,
-                                task.details,
-                                task.scheduledTimeMillis
-                            )
-                        }
-
-                        // Add feedback for the user
-                        Toast.makeText(context, "Task scheduled!", Toast.LENGTH_SHORT).show()
-
-                        // Clear fields after successful scheduling
-                        taskTitle = ""
-                        taskDetails = ""
-                        selectedDate = null
-                        selectedTime = null
-                    } else {
-                        Toast.makeText(context, "Please fill all fields and select date/time", Toast.LENGTH_SHORT).show()
-                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -191,7 +145,6 @@ class TaskViewModelFactory(private val context: Context) : androidx.lifecycle.Vi
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TaskViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return TaskViewModel(DatabaseProvider.getTaskDao(context)) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
