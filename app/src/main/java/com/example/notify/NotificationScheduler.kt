@@ -17,8 +17,8 @@ object NotificationScheduler {
     private const val CHANNEL_DESCRIPTION = "Notifications for scheduled tasks"
 
     @SuppressLint("ScheduleExactAlarm")
-    fun scheduleNotification(context: Context, task: Task) { // Pass the whole Task object
-        Log.d("NotificationScheduler", "Scheduling notification for task ID: ${task.id} at ${java.util.Date(task.scheduledTimeMillis)}")
+    fun scheduleNotification(context: Context, task: Task, requestCode: Long) { // Added requestCode: Long
+        Log.d("NotificationScheduler", "Scheduling notification for task ID: ${task.id} with requestCode: $requestCode at ${java.util.Date(task.scheduledTimeMillis)}")
 
         createNotificationChannel(context)
         Log.d("NotificationScheduler", "Notification channel created/checked.")
@@ -34,13 +34,12 @@ object NotificationScheduler {
         }
         Log.d("NotificationScheduler", "Intent for NotificationReceiver created.")
 
-        // Use the unique task ID as the request code for the PendingIntent
-        val requestCode = task.id.toInt()
+        // Use the provided requestCode for the PendingIntent
         Log.d("NotificationScheduler", "Using PendingIntent request code: $requestCode")
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode, // Use the unique task ID
+            requestCode.toInt(), // Convert Long requestCode to Int for PendingIntent (if needed, check PendingIntent docs)
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -55,36 +54,34 @@ object NotificationScheduler {
                     task.scheduledTimeMillis,
                     pendingIntent
                 )
-                Log.d("NotificationScheduler", "setExactAndAllowWhileIdle called for task ID: ${task.id}")
+                Log.d("NotificationScheduler", "setExactAndAllowWhileIdle called for task ID: ${task.id} with requestCode: $requestCode")
             } catch (e: SecurityException) {
-                Log.e("NotificationScheduler", "SecurityException scheduling alarm for task ID ${task.id}: ${e.message}", e)
+                Log.e("NotificationScheduler", "SecurityException scheduling alarm for task ID ${task.id} with requestCode ${requestCode}: ${e.message}", e)
             } catch (e: Exception) {
-                Log.e("NotificationScheduler", "Error scheduling alarm for task ID ${task.id}: ${e.message}", e)
+                Log.e("NotificationScheduler", "Error scheduling alarm for task ID ${task.id} with requestCode ${requestCode}: ${e.message}", e)
             }
-            Log.d("NotificationScheduler", "Alarm scheduling attempt finished for task ID: ${task.id}")
+            Log.d("NotificationScheduler", "Alarm scheduling attempt finished for task ID: ${task.id} with requestCode: $requestCode")
         } else {
             Log.d("NotificationScheduler", "Task ID ${task.id} scheduled in the past, not scheduling alarm.")
         }
     }
 
-    fun cancelNotification(context: Context, taskId: Long) { // Cancel using task ID
-        Log.d("NotificationScheduler", "Attempting to cancel notification for task ID: $taskId")
+    fun cancelNotification(context: Context, requestCode: Long) { // Use Long here too
+        Log.d("NotificationScheduler", "Attempting to cancel notification for requestCode: $requestCode")
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        // Recreate the PendingIntent using the same task ID and intent structure
+        // Recreate the PendingIntent using the same request code and intent structure
         val intent = Intent(context, NotificationReceiver::class.java).apply {
             // It's good practice to include the task ID in the intent even for cancellation,
             // although the requestCode is the primary identifier for cancel().
-            putExtra("task_id", taskId)
+            putExtra("task_id", requestCode) // Use the requestCode (task ID)
             // Include other extras if your PendingIntent recreation strictly requires them,
             // but for cancel() the requestCode is usually sufficient with the correct component/action.
         }
 
-        val requestCode = taskId.toInt() // Use the same task ID as the request code
-
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            requestCode,
+            requestCode.toInt(), // Convert Long requestCode to Int for PendingIntent (if needed)
             intent,
             // Use the same flags as when scheduling!
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -92,7 +89,7 @@ object NotificationScheduler {
 
         // Cancel the alarm
         alarmManager.cancel(pendingIntent)
-        Log.d("NotificationScheduler", "Cancelled notification with request code (task ID): $requestCode")
+        Log.d("NotificationScheduler", "Cancelled notification with request code: $requestCode")
     }
 
     private fun createNotificationChannel(context: Context) {
@@ -107,4 +104,5 @@ object NotificationScheduler {
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
+
 }
