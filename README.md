@@ -27,7 +27,7 @@ These instructions will get you a copy of the project up and running on your loc
 ### Installation
 
 1.  **Clone the repository:** git clone https://github.com/l1kiiiiii/notify.git
-2.  2.  **Open the project in Android Studio:**
+2.  **Open the project in Android Studio:**
     *   Open Android Studio.
     *   Select "Open an existing Android Studio project".
     *   Navigate to the cloned `notify` directory and click "Open".
