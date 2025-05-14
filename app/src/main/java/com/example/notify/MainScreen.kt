@@ -14,63 +14,103 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navOptions
 import com.example.notify.screens.AllTasks
 import com.example.notify.screens.Create
 import com.example.notify.screens.HomeScreen
+import com.example.notify.screens.TaskDetailsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(modifier: Modifier = Modifier) {
-    val navItemList=listOf(
-        Navitem("Home", Icons.Default.Home),
-        Navitem("Create", Icons.Default.Create),
-        Navitem("AllTasks", Icons.Default.Star)
+    val navController = rememberNavController() // Get the NavController
+
+    val navItemList = listOf(
+        Navitem("home", Icons.Default.Home), // Use routes as labels for easier comparison
+        Navitem("create", Icons.Default.Create),
+        Navitem("alltasks", Icons.Default.Star)
     )
-    var selectedIndex by remember{
-        mutableIntStateOf(0)
-    }
-    // The scrollBehavior is no longer needed if TopBar is removed
-    // val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-    //     state= rememberTopAppBarState()
-    // )
-    Scaffold (
-        modifier= Modifier.fillMaxSize(),
-        // Remove the topBar parameter
-        // topBar = {
-        //     TopBar(scrollBehavior=scrollBehavior )
-        // },
+
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
         bottomBar = {
             NavigationBar {
-                navItemList.forEachIndexed { index, navItem ->
+                navItemList.forEach { navItem ->
                     NavigationBarItem(
-                        selected =selectedIndex==index,
-                        onClick={
-                            selectedIndex=index
+                        selected = currentRoute == navItem.label, // Compare with currentRoute
+                        onClick = {
+                            // Navigate using navController
+                            navController.navigate(navItem.label, navOptions {
+                                // Pop up to the start destination of the graph to avoid building up a large stack of destinations
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination when reselecting the same item
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
+                            })
                         },
-                        icon={
+                        icon = {
                             Icon(
                                 imageVector = navItem.icon,
-                                contentDescription = "Icon",
+                                contentDescription = navItem.label,
                             )
                         },
-                        label={
-                            Text(text=navItem.label)
+                        label = {
+                            Text(text = navItem.label)
                         }
                     )
                 }
             }
         }
-    ){innerPadding ->
-        ContentScreen(modifier = Modifier.padding(innerPadding),selectedIndex)
+    ) { innerPadding ->
+        // Use NavHost here instead of ContentScreen
+        NavHost(
+            navController = navController,
+            startDestination = "home", // Set your start destination
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("home") {
+                HomeScreen(
+                    onNavigateToAddTask = { navController.navigate("create") },
+                    onNavigateToAllTasks = { navController.navigate("alltasks") },
+                    onNavigateToTaskDetails = { taskId -> navController.navigate("taskdetails/$taskId") }
+                )
+            }
+            composable("create") {
+                Create()
+            }
+            composable("alltasks") {
+                AllTasks()
+            }
+            // Define the TaskDetails destination with the argument
+            composable("taskdetails/{taskId}") { backStackEntry ->
+                val taskId = backStackEntry.arguments?.getString("taskId")?.toLongOrNull()
+                if (taskId != null) {
+                    TaskDetailsScreen(taskId = taskId, onNavigateBack = { navController.popBackStack() })
+                } else {
+                    // Handle the case where taskId is null (e.g., show an error or navigate back)
+                    navController.popBackStack()
+                }
+            }
+            // Add other destinations here as needed
+        }
     }
 }
 
-
+// You can remove the ContentScreen composable as it's replaced by NavHost
+/*
 @Composable
 fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int){
     when(selectedIndex){
@@ -79,9 +119,16 @@ fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int){
         2->AllTasks()
     }
 }
+*/
+
+// Assuming Navitem is defined like this somewhere in your project
+data class Navitem(
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
 
 @Preview(showBackground = true)
 @Composable
-fun MainScreenPreview(){
+fun MainScreenPreview() {
     MainScreen()
 }

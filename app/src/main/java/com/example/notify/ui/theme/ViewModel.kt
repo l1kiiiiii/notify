@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.notify.NotificationScheduler
 import com.example.notify.data.Task
 import com.example.notify.data.TaskDao
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -70,11 +71,6 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         emptyList()
     )
 
-
-    /**
-     * Inserts a new task into the database and schedules a notification.
-     * This is the function needed by the Create screen.
-     */
     fun insertTask(task: Task) {
         viewModelScope.launch {
             val newRowId = taskDao.insertTask(task)
@@ -86,10 +82,10 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
             )
         }
     }
+    fun getTaskById(taskId: Long): Flow<Task?> {
+        return taskDao.getTaskById(taskId) // Delegate to your TaskDao
+    }
 
-    /**
-     * Deletes a task from the database and cancels its associated notification.
-     */
     fun deleteTask(task: Task) {
         viewModelScope.launch {
             // 1. Cancel the scheduled notification
@@ -100,16 +96,9 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         }
     }
 
-    /**
-     * Updates the search query for the AllTasks screen.
-     */
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
-
-    /**
-     * Updates the search query for upcoming tasks on the HomeScreen.
-     */
     fun updateUpcomingSearchQuery(query: String) {
         _upcomingSearchQuery.value = query
     }

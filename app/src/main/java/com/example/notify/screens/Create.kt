@@ -62,15 +62,13 @@ fun Create(
     val calendar = Calendar.getInstance()
     val coroutineScope = rememberCoroutineScope()
 
-    // --- START: Add the permission handling code here ---
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
             Log.d("Permissions", "POST_NOTIFICATIONS permission granted")
-            // Optionally trigger scheduling logic if this was the last permission needed
-            // Or just rely on the button click calling scheduleTaskWithPermissionCheck again
+
         } else {
             Log.d("Permissions", "POST_NOTIFICATIONS permission denied")
             Toast.makeText(context, "Notification permission denied. Notifications are needed for reminders.", Toast.LENGTH_LONG).show()

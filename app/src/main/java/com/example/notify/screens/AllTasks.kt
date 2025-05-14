@@ -136,9 +136,5 @@ fun TaskItem(
 @Preview(showBackground = true)
 @Composable
 fun AllTasksPreview() {
-    // Provide a mock ViewModel for preview
-    // This requires creating a dummy TaskViewModel implementation for previews
-    // For simplicity in this preview, we'll call the Composable directly,
-    // but in a real app, use a mock ViewModel to avoid database access in previews.
     AllTasks()
 }

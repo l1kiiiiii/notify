@@ -31,9 +31,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-
-// ... existing imports and composable definition ...
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -41,10 +38,9 @@ fun HomeScreen(
     taskViewModel: TaskViewModel = viewModel(
         factory = TaskViewModelFactory(LocalContext.current)
     ),
-    onNavigateToAddTask: () -> Unit = {}, // This lambda will be called to navigate to Create
+    onNavigateToAddTask: () -> Unit = {},
     onNavigateToAllTasks: () -> Unit = {},
-            onNavigateToTaskDetails: (Long) -> Unit = {}
-// This lambda will be called to navigate to AllTasks
+    onNavigateToTaskDetails: (Long) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -106,9 +102,6 @@ fun HomeScreen(
     }
 }
 
-// ... rest of the HomeScreen.kt code ...
-
-// Create a separate Composable for displaying tasks on the Home screen
 @Composable
 fun HomeScreenTaskItem(task: Task) {
     val dateFormat = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
