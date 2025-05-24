@@ -92,33 +92,3 @@ Contributions are welcome! If you find a bug or want to add a new feature, pleas
 
 Please ensure your code follows the project's coding style and includes appropriate tests.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-*   Mention any libraries or resources you used.
-*   Thank anyone who contributed to the project.
-
----
-
-**Replace the bracketed placeholders (`[ ]`) and italicized text with your specific project details.**
-
-**Here's a breakdown of the sections and what to include:**
-
-*   **Project Title and Description:** A clear and concise title and a brief overview of what the app does.
-*   **App Screenshot:** Include a screenshot of your app to give users a visual idea of what it looks like. Replace `link-to-your-app-screenshot.png` with the actual path or URL.
-*   **Features:** List the main functionalities of your application.
-*   **Getting Started:** Provide instructions on how to set up and run the project.
-    *   **Prerequisites:** List the software and tools needed.
-    *   **Installation:** Step-by-step guide on cloning, opening, and running the project.
-*   **Project Structure:** Explain the organization of your codebase and the purpose of key directories and files. This is helpful for contributors and anyone trying to understand your project.
-*   **Technologies Used:** List the main technologies, libraries, and frameworks you utilized.
-*   **Contributing:** Guidelines for how others can contribute to your project. This encourages community involvement.
-*   **License:** Specify the license under which your project is distributed. It's highly recommended to include a `LICENSE` file in your repository.
-*   **Acknowledgments:** Give credit to any external resources or contributors.
-
-Remember to create a `LICENSE` file in the root of your repository containing the text of the license you choose (e.g., MIT License).
-
-This detailed README will provide potential users and contributors with all the information they need to understand and engage with your Notify project!
