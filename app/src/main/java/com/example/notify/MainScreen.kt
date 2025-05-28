@@ -104,24 +104,10 @@ fun MainScreen(modifier: Modifier = Modifier) {
                     navController.popBackStack()
                 }
             }
-            // Add other destinations here as needed
         }
     }
 }
 
-// You can remove the ContentScreen composable as it's replaced by NavHost
-/*
-@Composable
-fun ContentScreen(modifier: Modifier = Modifier, selectedIndex: Int){
-    when(selectedIndex){
-        0->HomeScreen()
-        1->Create()
-        2->AllTasks()
-    }
-}
-*/
-
-// Assuming Navitem is defined like this somewhere in your project
 data class Navitem(
     val label: String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector
