@@ -1,5 +1,6 @@
 package com.example.notify
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -29,9 +32,14 @@ import com.example.notify.screens.TaskDetailsScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(modifier: Modifier = Modifier) {
+fun MainScreen() {
     val navController = rememberNavController() // Get the NavController
-
+    val bottomBarGradient = Brush.verticalGradient(
+        0.0f to Color.White.copy(alpha = 0.8f), // Start (top)
+        0.4f to Color.White,                   // 40% down, transition to solid White
+        1.0f to Color.Black                    // End (bottom)
+        // Add more stops as needed
+    )
     val navItemList = listOf(
         Navitem("home", Icons.Default.Home), // Use routes as labels for easier comparison
         Navitem("create", Icons.Default.Create),
@@ -42,35 +50,44 @@ fun MainScreen(modifier: Modifier = Modifier) {
     val currentRoute = currentBackStackEntry?.destination?.route
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            NavigationBar {
-                navItemList.forEach { navItem ->
-                    NavigationBarItem(
-                        selected = currentRoute == navItem.label, // Compare with currentRoute
-                        onClick = {
-                            // Navigate using navController
-                            navController.navigate(navItem.label, navOptions {
-                                // Pop up to the start destination of the graph to avoid building up a large stack of destinations
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination when reselecting the same item
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
-                            })
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = navItem.icon,
-                                contentDescription = navItem.label,
-                            )
-                        },
-                        label = {
-                            Text(text = navItem.label)
-                        }
-                    )
+        modifier = Modifier
+            .fillMaxSize()
+            ,
+        bottomBar = {//bar starts
+            Box( // Clip the Box
+                ) {
+                NavigationBar(
+                    modifier = Modifier,
+                    containerColor = Color.Transparent,
+
+                ) {
+                    navItemList.forEach { navItem ->
+                        NavigationBarItem(
+                            selected = currentRoute == navItem.label, // Compare with currentRoute
+                            onClick = {
+                                // Navigate using navController
+                                navController.navigate(navItem.label, navOptions {
+                                    // Pop up to the start destination of the graph to avoid building up a large stack of destinations
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    // Avoid multiple copies of the same destination when reselecting the same item
+                                    launchSingleTop = true
+                                    // Restore state when reselecting a previously selected item
+                                    restoreState = true
+                                })
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = navItem.icon,
+                                    contentDescription = navItem.label,
+                                )
+                            },
+                            label = {
+                                Text(text = navItem.label)
+                            }
+                        )
+                    }
                 }
             }
         }
