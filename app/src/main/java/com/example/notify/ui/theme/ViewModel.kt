@@ -95,6 +95,13 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
             taskDao.deleteTask(task)
         }
     }
+    fun updateTask(task: Task) {
+        viewModelScope.launch {
+            NotificationScheduler.cancelNotification(context, task.id.toInt().toLong())
+            taskDao.updateTask(task)
+            NotificationScheduler.scheduleNotification(context, task, task.id.toInt().toLong())
+        }
+    }
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
