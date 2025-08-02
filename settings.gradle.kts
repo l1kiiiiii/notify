@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "notify"
 include(":app")
- 
+include(":benchmark")
