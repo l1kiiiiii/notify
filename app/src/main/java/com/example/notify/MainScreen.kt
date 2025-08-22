@@ -16,7 +16,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -34,15 +33,10 @@ import com.example.notify.screens.TaskDetailsScreen
 @Composable
 fun MainScreen() {
     val navController = rememberNavController() // Get the NavController
-    val bottomBarGradient = Brush.verticalGradient(
-        0.0f to Color.White.copy(alpha = 0.8f), // Start (top)
-        0.4f to Color.White,                   // 40% down, transition to solid White
-        1.0f to Color.Black                    // End (bottom)
-        // Add more stops as needed
-    )
+
+
     val navItemList = listOf(
         Navitem("home", Icons.Default.Home), // Use routes as labels for easier comparison
-        Navitem("create", Icons.Default.Create),
         Navitem("alltasks", Icons.Default.Star)
     )
 
@@ -53,6 +47,17 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             ,
+        // floating create button
+        floatingActionButton = {
+            androidx.compose.material3.FloatingActionButton(
+                onClick = { navController.navigate("create") },
+                containerColor = Color.Black,
+                contentColor = Color.White
+            ) {
+                Icon(Icons.Default.Create, contentDescription = "Add Task")
+            }
+        },
+        floatingActionButtonPosition = androidx.compose.material3.FabPosition.End,
         bottomBar = {//bar starts
             Box( // Clip the Box
                 ) {
@@ -106,7 +111,9 @@ fun MainScreen() {
                 )
             }
             composable("create") {
-                Create()
+                Create(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable("alltasks") {
                 AllTasks()

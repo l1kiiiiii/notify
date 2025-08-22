@@ -32,4 +32,12 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     fun getTaskById(taskId: Long): Flow<Task?> // Corrected return type and removed suspend
 
+    @Query("SELECT * FROM tasks WHERE category = :categoryName ORDER BY scheduledTimeMillis ASC")
+    fun getTasksByCategory(categoryName: String): Flow<List<Task>>
+
+    @Query("SELECT DISTINCT category FROM tasks ORDER BY category ASC")
+    fun getAllCategories(): Flow<List<String>>
+
+    @Query("SELECT * FROM tasks WHERE category = :categoryName AND scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC")
+    fun getUpcomingTasksByCategory(categoryName: String, currentTimeMillis: Long): Flow<List<Task>>
 }
