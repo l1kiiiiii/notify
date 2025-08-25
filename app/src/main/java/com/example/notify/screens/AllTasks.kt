@@ -17,7 +17,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,29 +56,30 @@ fun AllTasks(
         factory = TaskViewModelFactory(LocalContext.current)
     )
 ) {
-    // Observe filtered tasks from the ViewModel
-    val allTasks by taskViewModel.filteredTasks.collectAsState(initial = emptyList())
-
-    // Observe the search query from the ViewModel
+    // Collect StateFlow as State for Compose
+    val allTasks by taskViewModel.filteredTasks.collectAsState()
     val searchQuery by taskViewModel.searchQuery.collectAsState()
 
-    // State for edit dialog
     var showEditDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     var editedTitle by remember { mutableStateOf("") }
+    var editedCategory by remember { mutableStateOf("") }
     var editedDetails by remember { mutableStateOf("") }
     var editedScheduledTime by remember { mutableStateOf<Long?>(null) }
 
-    // Date and Time picker states
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = taskToEdit?.scheduledTimeMillis // Re-keys when taskToEdit changes
-        // or provide a default if taskToEdit is null initially
+        initialSelectedDateMillis = taskToEdit?.scheduledTimeMillis
     )
 
     val timePickerState = rememberTimePickerState(
-        // Initialize based on taskToEdit as well if needed, or default to current time
-        initialHour = taskToEdit?.let { java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }.get(java.util.Calendar.HOUR_OF_DAY) } ?: java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
-        initialMinute = taskToEdit?.let { java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }.get(java.util.Calendar.MINUTE) } ?: java.util.Calendar.getInstance().get(java.util.Calendar.MINUTE)
+        initialHour = taskToEdit?.let {
+            java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
+                .get(java.util.Calendar.HOUR_OF_DAY)
+        } ?: java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
+        initialMinute = taskToEdit?.let {
+            java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
+                .get(java.util.Calendar.MINUTE)
+        } ?: java.util.Calendar.getInstance().get(java.util.Calendar.MINUTE)
     )
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -129,28 +129,20 @@ fun AllTasks(
                             onDeleteClick = { taskToDelete ->
                                 taskViewModel.deleteTask(taskToDelete)
                             },
-
                             onEditClick = { currentTaskToEdit ->
-                                taskToEdit = currentTaskToEdit // This will trigger recomposition, re-remembering datePickerState with new initial value
+                                taskToEdit = currentTaskToEdit
                                 editedTitle = currentTaskToEdit.title
                                 editedDetails = currentTaskToEdit.details
-                                editedScheduledTime = currentTaskToEdit.scheduledTimeMillis // Keep this for your formattedTime display and final save
-
-                                // Update timePickerState directly since it has public setters
+                                editedCategory = currentTaskToEdit.category
+                                editedScheduledTime = currentTaskToEdit.scheduledTimeMillis
                                 val calendar = java.util.Calendar.getInstance().apply {
                                     timeInMillis = currentTaskToEdit.scheduledTimeMillis
                                 }
-                                // These setters are available if using the material3 time picker state
-                                // If rememberTimePickerState is from a different library, check its API
-                                // For androidx.compose.material3.rememberTimePickerState, hour and minute are mutable properties
                                 timePickerState.hour = calendar.get(java.util.Calendar.HOUR_OF_DAY)
                                 timePickerState.minute = calendar.get(java.util.Calendar.MINUTE)
-
                                 showEditDialog = true
                             }
-
                         )
-                        Divider()
                     }
                 }
             }
@@ -178,6 +170,13 @@ fun AllTasks(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = editedCategory,
+                        onValueChange = { editedCategory = it },
+                        label = { Text("Category") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     val formattedTime = editedScheduledTime?.let {
                         SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(it))
                     } ?: "Select Date & Time"
@@ -196,6 +195,7 @@ fun AllTasks(
                             val updatedTask = task.copy(
                                 title = editedTitle.trim(),
                                 details = editedDetails.trim(),
+                                category = if (editedCategory.isBlank()) "General" else editedCategory.trim(),
                                 scheduledTimeMillis = editedScheduledTime ?: task.scheduledTimeMillis
                             )
                             taskViewModel.updateTask(updatedTask)
@@ -216,7 +216,6 @@ fun AllTasks(
         )
     }
 
-    // Date Picker Dialog
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -240,7 +239,6 @@ fun AllTasks(
         }
     }
 
-    // Time Picker Dialog
     if (showTimePicker) {
         TimePickerDialog(
             onDismissRequest = { showTimePicker = false },
@@ -311,8 +309,12 @@ fun TaskItem(
             modifier = Modifier.weight(1f)
         ) {
             Text(text = task.title, style = MaterialTheme.typography.titleMedium)
+            if (task.details.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = task.details, style = MaterialTheme.typography.bodyMedium)
+            }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = task.details, style = MaterialTheme.typography.bodyMedium)
+            Text(text = "Category: ${task.category}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "Scheduled for: $formattedTime", style = MaterialTheme.typography.bodySmall)
         }

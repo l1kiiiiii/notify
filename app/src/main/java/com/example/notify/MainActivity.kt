@@ -14,11 +14,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-                DailyTheme {
-                    Surface(modifier = Modifier.fillMaxSize()) {
-                        MainScreen()
-                    }
+            DailyTheme {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    MainScreen()
                 }
+            }
         }
     }
 }
