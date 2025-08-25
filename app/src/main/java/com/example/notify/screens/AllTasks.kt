@@ -17,7 +17,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,13 +56,14 @@ fun AllTasks(
         factory = TaskViewModelFactory(LocalContext.current)
     )
 ) {
-    val allTasks by taskViewModel.filteredTasks.collectAsState(initial = emptyList())
+    // Collect StateFlow as State for Compose
+    val allTasks by taskViewModel.filteredTasks.collectAsState()
     val searchQuery by taskViewModel.searchQuery.collectAsState()
 
     var showEditDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
     var editedTitle by remember { mutableStateOf("") }
-    var editedCategory by remember { mutableStateOf("") } // Correct: State for edited category
+    var editedCategory by remember { mutableStateOf("") }
     var editedDetails by remember { mutableStateOf("") }
     var editedScheduledTime by remember { mutableStateOf<Long?>(null) }
 
@@ -72,8 +72,14 @@ fun AllTasks(
     )
 
     val timePickerState = rememberTimePickerState(
-        initialHour = taskToEdit?.let { java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }.get(java.util.Calendar.HOUR_OF_DAY) } ?: java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
-        initialMinute = taskToEdit?.let { java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }.get(java.util.Calendar.MINUTE) } ?: java.util.Calendar.getInstance().get(java.util.Calendar.MINUTE)
+        initialHour = taskToEdit?.let {
+            java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
+                .get(java.util.Calendar.HOUR_OF_DAY)
+        } ?: java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY),
+        initialMinute = taskToEdit?.let {
+            java.util.Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
+                .get(java.util.Calendar.MINUTE)
+        } ?: java.util.Calendar.getInstance().get(java.util.Calendar.MINUTE)
     )
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -127,7 +133,7 @@ fun AllTasks(
                                 taskToEdit = currentTaskToEdit
                                 editedTitle = currentTaskToEdit.title
                                 editedDetails = currentTaskToEdit.details
-                                editedCategory = currentTaskToEdit.category // Correct: Load category
+                                editedCategory = currentTaskToEdit.category
                                 editedScheduledTime = currentTaskToEdit.scheduledTimeMillis
                                 val calendar = java.util.Calendar.getInstance().apply {
                                     timeInMillis = currentTaskToEdit.scheduledTimeMillis
@@ -164,7 +170,6 @@ fun AllTasks(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    // Correct: Add the OutlinedTextField for category
                     OutlinedTextField(
                         value = editedCategory,
                         onValueChange = { editedCategory = it },
@@ -190,7 +195,6 @@ fun AllTasks(
                             val updatedTask = task.copy(
                                 title = editedTitle.trim(),
                                 details = editedDetails.trim(),
-                                // Correct: Update the category in the task object
                                 category = if (editedCategory.isBlank()) "General" else editedCategory.trim(),
                                 scheduledTimeMillis = editedScheduledTime ?: task.scheduledTimeMillis
                             )
@@ -309,7 +313,6 @@ fun TaskItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = task.details, style = MaterialTheme.typography.bodyMedium)
             }
-
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "Category: ${task.category}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))

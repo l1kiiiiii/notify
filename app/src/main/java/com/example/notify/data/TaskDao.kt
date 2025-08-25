@@ -8,6 +8,8 @@ import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+
+
 @Dao
 interface TaskDao {
 
@@ -40,4 +42,21 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE category = :categoryName AND scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC")
     fun getUpcomingTasksByCategory(categoryName: String, currentTimeMillis: Long): Flow<List<Task>>
+
+    @Query("SELECT * FROM tasks WHERE status = :status ORDER BY priority ASC, scheduledTimeMillis ASC")
+    fun getTasksByStatus(status: TaskStatus): Flow<List<Task>>
+
+    // Fetches tasks that are not completed and are either explicitly upcoming, pending, or in-progress
+    // This allows the ViewModel to further refine what "upcoming" means (e.g., based on time).
+    @Query("SELECT * FROM tasks WHERE status != 'COMPLETED' AND scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC") // Added AND scheduledTimeMillis > :currentTimeMillis
+    fun getPotentiallyUpcomingTasks(currentTimeMillis: Long): Flow<List<Task>>
+
+
+
+    @Query("SELECT * FROM tasks WHERE status = 'COMPLETED' ORDER BY scheduledTimeMillis DESC")
+    fun getCompletedTasks(): Flow<List<Task>>
+
+    // You might also want a query to get all non-completed tasks sorted by priority then time
+    @Query("SELECT * FROM tasks WHERE status != 'COMPLETED' ORDER BY priority ASC, scheduledTimeMillis ASC")
+    fun getAllActiveTasksSorted(): Flow<List<Task>>
 }

@@ -10,5 +10,7 @@ data class Task(
     val title: String,
     val details: String,
     val scheduledTimeMillis: Long,
-    val category: String = "General"
+    val category: String = "General",
+    val priority: Priority = Priority.LOW,
+    val status: TaskStatus = TaskStatus.PENDING
 )

@@ -15,13 +15,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -48,15 +46,11 @@ fun HomeScreen(
 
     val filteredUpcomingTasks by taskViewModel.filteredUpcomingTasks.collectAsState(initial = emptyList())
     val upcomingSearchQuery by taskViewModel.upcomingSearchQuery.collectAsState()
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(title = { Text("Notify")},
-                scrollBehavior = scrollBehavior
-            )
+            TopAppBar(title = { Text("Notify") })
         }
     ) { innerPadding ->
         Column(
@@ -67,7 +61,11 @@ fun HomeScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
+            Text(
+                text = "Welcome to Notify!",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
 
             OutlinedTextField(
                 value = upcomingSearchQuery,
@@ -115,7 +113,6 @@ fun HomeScreenTaskItem(task: Task) {
             .padding(vertical = 4.dp)
     ) {
         Text(text = task.title, style = MaterialTheme.typography.titleSmall)
-        Text(text = "Category: ${task.category}", style = MaterialTheme.typography.bodySmall)
         Text(text = "Scheduled for: $formattedTime", style = MaterialTheme.typography.bodySmall)
     }
 }
