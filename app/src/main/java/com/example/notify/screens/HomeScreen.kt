@@ -39,6 +39,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,17 +54,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.liveData
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.notify.data.Priority
+import com.example.notify.MainScreen
 import com.example.notify.data.Task
-import com.example.notify.data.TaskDao
 import com.example.notify.data.TaskStatus
 import com.example.notify.ui.viewmodel.TaskViewModel
 import com.example.notify.ui.viewmodel.TaskViewModelFactory
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -73,11 +73,29 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    navController: NavController = rememberNavController(),
+    navController: NavController ,
     taskViewModel: TaskViewModel = viewModel(
         factory = TaskViewModelFactory(LocalContext.current)
     )
 ) {
+    DisposableEffect(navController) {
+        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+        val taskCreatedLiveData = savedStateHandle?.getLiveData<Boolean>("taskCreated")
+
+        val observer = androidx.lifecycle.Observer<Boolean> { created ->
+            if (created == true) {
+                //taskViewModel.loadTasks  //Refresh tasks
+                savedStateHandle?.set("taskCreated", false) // Reset the flag
+            }
+        }
+
+        taskCreatedLiveData?.observeForever(observer)
+
+        // Ensure the observer is removed when the effect leaves the composition
+        onDispose {
+            taskCreatedLiveData?.removeObserver(observer)
+        }
+    }
     // Collect StateFlow as State for Compose
     val allTasks by taskViewModel.filteredTasks.collectAsState()
     val searchQuery by taskViewModel.searchQuery.collectAsState()
@@ -114,16 +132,14 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(title = { Text("Notify") })
-        },
+       // topBar = { TopAppBar(title = { Text("Notify") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 4.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
@@ -310,6 +326,7 @@ fun HomeScreen(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(
@@ -452,6 +469,9 @@ fun TaskProgressIndicator(
         )
     }
 }
-
-
-
+@Preview(showBackground = true)
+@Composable
+fun HomeScreenPreview() {
+    val navController = rememberNavController()
+    HomeScreen(navController = navController)
+}

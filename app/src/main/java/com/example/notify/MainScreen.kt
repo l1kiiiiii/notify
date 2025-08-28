@@ -43,43 +43,47 @@ fun MainScreen() {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { navController.navigate("create") },
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Create, contentDescription = "Add Task")
+            if (currentRoute == "home") {
+                FloatingActionButton(
+                    onClick = { navController.navigate("create") },
+                    containerColor = Color.Black,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Create, contentDescription = "Add Task")
+                }
             }
         },
         floatingActionButtonPosition = androidx.compose.material3.FabPosition.End,
         bottomBar = {
-            Box {
-                NavigationBar(
-                    modifier = Modifier,
-                    containerColor = Color.Transparent,
-                ) {
-                    navItemList.forEach { navItem ->
-                        NavigationBarItem(
-                            selected = currentRoute == navItem.label,
-                            onClick = {
-                                navController.navigate(navItem.label) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+            if (currentRoute == "home") {
+                Box {
+                    NavigationBar(
+                        modifier = Modifier,
+                        containerColor = Color.Transparent,
+                    ) {
+                        navItemList.forEach { navItem ->
+                            NavigationBarItem(
+                                selected = currentRoute == navItem.label,
+                                onClick = {
+                                    navController.navigate(navItem.label) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = navItem.icon,
+                                        contentDescription = navItem.label,
+                                    )
+                                },
+                                label = {
+                                    Text(text = navItem.label)
                                 }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = navItem.icon,
-                                    contentDescription = navItem.label,
-                                )
-                            },
-                            label = {
-                                Text(text = navItem.label)
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -94,14 +98,17 @@ fun MainScreen() {
                 HomeScreen(navController = navController)
             }
             composable("create") {
-                Create(onNavigateBack = { navController.popBackStack() })
+                Create(
+                    navController = navController,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
             composable("taskdetails/{taskId}") { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getString("taskId")?.toLongOrNull()
                 if (taskId != null) {
                     TaskDetailsScreen(taskId = taskId, onNavigateBack = { navController.popBackStack() })
                 } else {
-                    navController.popBackStack()
+                    navController.popBackStack() // Or handle error
                 }
             }
         }

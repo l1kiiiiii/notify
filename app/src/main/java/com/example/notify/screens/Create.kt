@@ -52,10 +52,13 @@ import com.example.notify.data.DatabaseProvider
 import com.example.notify.data.Task
 import com.example.notify.ui.viewmodel.TaskViewModel
 import java.util.Calendar
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Create(
     modifier: Modifier = Modifier,
+    navController: NavController,
     taskViewModel: TaskViewModel = viewModel(factory = TaskViewModelFactory(LocalContext.current)),
     onNavigateBack: () -> Unit = {}
 ) {
@@ -107,6 +110,10 @@ fun Create(
             )
 
             taskViewModel.insertTask(task)
+            // 🔹 Tell HomeScreen to refresh
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set("taskCreated", true)
 
             Toast.makeText(context, "Task scheduled!", Toast.LENGTH_SHORT).show()
 
@@ -330,9 +337,13 @@ class TaskViewModelFactory(private val context: Context) : androidx.lifecycle.Vi
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
-@Preview
+// Create.kt
+@Preview(showBackground = true) // Keep your existing Preview annotation if you have one
 @Composable
 fun CreatePreview() {
-    Create(onNavigateBack = { /* Handle back navigation */ })
+    val navController = rememberNavController() // Create a NavController for the preview
+    Create(
+        navController = navController, // Pass it to the Create composable
+        onNavigateBack = { /* Handle back navigation for preview, e.g., log */ }
+    )
 }
