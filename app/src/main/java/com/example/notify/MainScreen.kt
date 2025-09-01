@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -17,14 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
-import com.example.notify.screens.AllTasks
 import com.example.notify.screens.Create
 import com.example.notify.screens.HomeScreen
 import com.example.notify.screens.TaskDetailsScreen
@@ -32,100 +31,84 @@ import com.example.notify.screens.TaskDetailsScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-    val navController = rememberNavController() // Get the NavController
-
+    val navController = rememberNavController()
 
     val navItemList = listOf(
-        Navitem("home", Icons.Default.Home), // Use routes as labels for easier comparison
-        Navitem("alltasks", Icons.Default.Star)
+        Navitem("home", Icons.Default.Home),
     )
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            ,
-        // floating create button
+        modifier = Modifier.fillMaxSize(),
         floatingActionButton = {
-            androidx.compose.material3.FloatingActionButton(
-                onClick = { navController.navigate("create") },
-                containerColor = Color.Black,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Create, contentDescription = "Add Task")
+            if (currentRoute == "home") {
+                FloatingActionButton(
+                    onClick = { navController.navigate("create") },
+                    containerColor = Color.Black,
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Default.Create, contentDescription = "Add Task")
+                }
             }
         },
         floatingActionButtonPosition = androidx.compose.material3.FabPosition.End,
-        bottomBar = {//bar starts
-            Box( // Clip the Box
-                ) {
-                NavigationBar(
-                    modifier = Modifier,
-                    containerColor = Color.Transparent,
-
-                ) {
-                    navItemList.forEach { navItem ->
-                        NavigationBarItem(
-                            selected = currentRoute == navItem.label, // Compare with currentRoute
-                            onClick = {
-                                // Navigate using navController
-                                navController.navigate(navItem.label, navOptions {
-                                    // Pop up to the start destination of the graph to avoid building up a large stack of destinations
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+        bottomBar = {
+            if (currentRoute == "home") {
+                Box {
+                    NavigationBar(
+                        modifier = Modifier,
+                        containerColor = Color.Transparent,
+                    ) {
+                        navItemList.forEach { navItem ->
+                            NavigationBarItem(
+                                selected = currentRoute == navItem.label,
+                                onClick = {
+                                    navController.navigate(navItem.label) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    // Avoid multiple copies of the same destination when reselecting the same item
-                                    launchSingleTop = true
-                                    // Restore state when reselecting a previously selected item
-                                    restoreState = true
-                                })
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = navItem.icon,
-                                    contentDescription = navItem.label,
-                                )
-                            },
-                            label = {
-                                Text(text = navItem.label)
-                            }
-                        )
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = navItem.icon,
+                                        contentDescription = navItem.label,
+                                    )
+                                },
+                                label = {
+                                    Text(text = navItem.label)
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     ) { innerPadding ->
-        // Use NavHost here instead of ContentScreen
         NavHost(
             navController = navController,
-            startDestination = "home", // Set your start destination
+            startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
-                HomeScreen(
-                    onNavigateToAddTask = { navController.navigate("create") },
-                    onNavigateToAllTasks = { navController.navigate("alltasks") },
-                    onNavigateToTaskDetails = { taskId -> navController.navigate("taskdetails/$taskId") }
-                )
+                HomeScreen(navController = navController)
             }
             composable("create") {
                 Create(
+                    navController = navController,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable("alltasks") {
-                AllTasks()
-            }
-            // Define the TaskDetails destination with the argument
             composable("taskdetails/{taskId}") { backStackEntry ->
                 val taskId = backStackEntry.arguments?.getString("taskId")?.toLongOrNull()
                 if (taskId != null) {
                     TaskDetailsScreen(taskId = taskId, onNavigateBack = { navController.popBackStack() })
                 } else {
-                    // Handle the case where taskId is null (e.g., show an error or navigate back)
-                    navController.popBackStack()
+                    navController.popBackStack() // Or handle error
                 }
             }
         }
@@ -134,7 +117,7 @@ fun MainScreen() {
 
 data class Navitem(
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    val icon: ImageVector
 )
 
 @Preview(showBackground = true)

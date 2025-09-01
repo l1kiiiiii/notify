@@ -4,7 +4,7 @@ enum class Priority(val displayName: String) {
     URGENT("Urgent"),
     HIGH("High"),
     MEDIUM("Medium"),
-    LOW("Low")
+    LOW("Low"),
 }
 
 
