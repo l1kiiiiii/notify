@@ -73,7 +73,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    navController: NavController ,
+    navController: NavController,
     taskViewModel: TaskViewModel = viewModel(
         factory = TaskViewModelFactory(LocalContext.current)
     )
@@ -84,7 +84,7 @@ fun HomeScreen(
 
         val observer = androidx.lifecycle.Observer<Boolean> { created ->
             if (created == true) {
-                //taskViewModel.loadTasks  //Refresh tasks
+                //taskViewModel.loadTasks //Refresh tasks
                 savedStateHandle?.set("taskCreated", false) // Reset the flag
             }
         }
@@ -132,7 +132,7 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-       // topBar = { TopAppBar(title = { Text("Notify") }) },
+        // topBar = { TopAppBar(title = { Text("Notify") }) },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
@@ -187,7 +187,7 @@ fun HomeScreen(
                             onStatusClick = { newStatus ->
                                 taskViewModel.updateTaskStatus(task.id, newStatus)
                                 coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("Task status updated to $newStatus")
+                                    snackbarHostState.showSnackbar("Task status updated to ${newStatus.displayName}")
                                 }
                             },
                             onTaskClick = { taskId ->
@@ -326,7 +326,6 @@ fun HomeScreen(
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimePickerDialog(
@@ -370,10 +369,9 @@ fun TaskItem(
             status = task.status,
             onStatusClick = {
                 val newStatus = when (task.status) {
-                    TaskStatus.PENDING -> TaskStatus.UPCOMING
-                    TaskStatus.UPCOMING -> TaskStatus.IN_PROGRESS
-                    TaskStatus.IN_PROGRESS -> TaskStatus.COMPLETED
-                    TaskStatus.COMPLETED -> TaskStatus.PENDING
+                    TaskStatus.UPCOMING -> TaskStatus.ACTIVE
+                    TaskStatus.ACTIVE -> TaskStatus.COMPLETED
+                    TaskStatus.COMPLETED -> TaskStatus.ACTIVE
                 }
                 onStatusClick(newStatus)
             }
@@ -440,9 +438,8 @@ fun TaskProgressIndicator(
                 .background(
                     color = when (status) {
                         TaskStatus.COMPLETED -> Color.Green
-                        TaskStatus.IN_PROGRESS -> Color.Yellow
+                        TaskStatus.ACTIVE -> Color.Blue
                         TaskStatus.UPCOMING -> Color.LightGray
-                        TaskStatus.PENDING -> Color.Gray
                     },
                     shape = CircleShape
                 ),
@@ -461,17 +458,10 @@ fun TaskProgressIndicator(
         Text(
             text = when (status) {
                 TaskStatus.COMPLETED -> "Completed"
-                TaskStatus.IN_PROGRESS -> "In Progress"
                 TaskStatus.UPCOMING -> "Upcoming"
-                TaskStatus.PENDING -> "Pending"
+                TaskStatus.ACTIVE -> "Active"
             },
             style = MaterialTheme.typography.bodyMedium
         )
     }
-}
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    val navController = rememberNavController()
-    HomeScreen(navController = navController)
 }
