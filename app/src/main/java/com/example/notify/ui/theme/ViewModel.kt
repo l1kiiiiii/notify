@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notify.NotificationScheduler
-import com.example.notify.data.Priority
 import com.example.notify.data.Task
 import com.example.notify.data.TaskDao
 import com.example.notify.data.TaskStatus
@@ -22,9 +21,8 @@ import java.util.Calendar
 
 class TaskViewModel(private val taskDao: TaskDao, private val context: Context) : ViewModel() {
 
-    // States for search queries
-    private val _searchQuery = MutableStateFlow("") // Renamed from _allTasksSearchQuery
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow() // Renamed from allTasksSearchQuery
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _upcomingSearchQuery = MutableStateFlow("")
     val upcomingSearchQuery: StateFlow<String> = _upcomingSearchQuery.asStateFlow()
@@ -32,14 +30,14 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
     private val _sortUpcomingByPriority = MutableStateFlow(false)
     val sortUpcomingByPriority: StateFlow<Boolean> = _sortUpcomingByPriority.asStateFlow()
 
-    // Flow of all tasks from the database
+    private val UPCOMING_TASKS_DISPLAY_LIMIT = 5
+
     private val _allTasks: StateFlow<List<Task>> = taskDao.getAllTasks().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         emptyList()
     )
 
-    // Filtered flow for the AllTasks screen, combining all tasks and search query
     val filteredTasks: StateFlow<List<Task>> = combine(_allTasks, searchQuery) { tasks, query ->
         filterTasks(tasks, query)
     }.stateIn(
@@ -48,17 +46,9 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         emptyList()
     )
 
-    // Flow of upcoming tasks from the database
-    private val _upcomingTasks: StateFlow<List<Task>> = taskDao.getUpcomingTasks(Calendar.getInstance().timeInMillis).stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyList()
-    )
-
-    // Filtered and sorted flow for the HomeScreen
     @OptIn(ExperimentalCoroutinesApi::class)
     val filteredUpcomingTasks: StateFlow<List<Task>> = combine(
-        _upcomingTasks,
+        taskDao.getUpcomingTasks(Calendar.getInstance().timeInMillis, UPCOMING_TASKS_DISPLAY_LIMIT),
         upcomingSearchQuery,
         sortUpcomingByPriority
     ) { tasks, query, sortByPriority ->
@@ -76,9 +66,11 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
 
     fun insertTask(task: Task) {
         viewModelScope.launch {
-            val newRowId = taskDao.insertTask(task)
+            val initialStatus = determineTaskStatus(task.scheduledTimeMillis)
+            val newTask = task.copy(status = initialStatus)
+            val newRowId = taskDao.insertTask(newTask)
             if (newRowId > 0) {
-                val taskWithId = task.copy(id = newRowId)
+                val taskWithId = newTask.copy(id = newRowId)
                 NotificationScheduler.scheduleNotification(context, taskWithId, newRowId)
             }
         }
@@ -107,12 +99,28 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         viewModelScope.launch {
             val task = taskDao.getTaskById(taskId).firstOrNull()
             task?.let {
-                taskDao.updateTask(it.copy(status = newStatus))
+                val updatedTask = when (newStatus) {
+                    TaskStatus.COMPLETED -> it.copy(status = newStatus)
+                    // Removed IN_PROGRESS case as it no longer exists
+                    else -> it.copy(status = determineTaskStatus(it.scheduledTimeMillis))
+                }
+                taskDao.updateTask(updatedTask)
+                NotificationScheduler.cancelNotification(context, task.id)
+                NotificationScheduler.scheduleNotification(context, updatedTask, task.id)
             }
         }
     }
 
-    fun updateSearchQuery(query: String) { // Renamed from updateAllTasksSearchQuery
+    private fun determineTaskStatus(scheduledTimeMillis: Long?): TaskStatus {
+        val currentTime = System.currentTimeMillis()
+        return if (scheduledTimeMillis != null && scheduledTimeMillis > currentTime) {
+            TaskStatus.UPCOMING
+        } else {
+            TaskStatus.ACTIVE
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
@@ -126,8 +134,8 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         } else {
             tasks.filter {
                 it.title.contains(query, ignoreCase = true) ||
-                        it.details.contains(query, ignoreCase = true) ||
-                        it.category.contains(query, ignoreCase = true)
+                        (it.details?.contains(query, ignoreCase = true) ?: false) ||
+                        (it.category?.contains(query, ignoreCase = true) ?: false)
             }
         }
     }

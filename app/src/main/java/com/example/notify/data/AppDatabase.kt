@@ -39,7 +39,7 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE tasks ADD COLUMN priority TEXT NOT NULL DEFAULT '${Priority.MEDIUM.name}'")
 
                 // 2. Add the new status column
-                db.execSQL("ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT '${TaskStatus.PENDING.name}'")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT '${TaskStatus.ACTIVE.name}'")
 
                 // 3. Migrate 'isCompleted' (INTEGER) to 'status' (TEXT)
                 //    This assumes 'isCompleted' column existed in version 2.
