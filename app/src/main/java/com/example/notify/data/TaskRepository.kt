@@ -2,15 +2,20 @@ package com.example.notify.data
 
 import android.content.Context
 
-// Assuming your existing TaskDao and AppDatabase are correctly defined
-// and AppDatabase has a method to get the TaskDao.
+// Repository that provides a clean API to access TaskDao
+class TaskRepository private constructor(
+    private val taskDao: TaskDao
+) {
 
-class TaskRepository(private val taskDao: TaskDao) { // Constructor injection for TaskDao is good practice
-
-    suspend fun getUpcomingTasks(now: Long, limit: Int): List<String> {
-        // This will call the suspend function defined in your TaskDao
-        return taskDao.getUpcomingTasks(now, limit) as List<String>
+    // Returns formatted strings for upcoming tasks (for widgets, one-shot)
+    suspend fun getUpcomingTasksForWidget(limit: Int): List<String> {
+        val currentTime = System.currentTimeMillis()
+        return taskDao.getUpcomingTaskStrings(currentTime, limit)
     }
+
+    // Example: You could also expose Flow<List<Task>> for Compose screens
+    // fun getUpcomingTasksFlow(limit: Int): Flow<List<Task>> =
+    //     taskDao.getUpcomingTasks(System.currentTimeMillis(), limit)
 
     companion object {
         @Volatile
@@ -18,8 +23,8 @@ class TaskRepository(private val taskDao: TaskDao) { // Constructor injection fo
 
         fun getInstance(context: Context): TaskRepository {
             return INSTANCE ?: synchronized(this) {
-                val database = AppDatabase.getDatabase(context.applicationContext) // Use your existing AppDatabase
-                val instance = TaskRepository(database.taskDao()) // Pass the DAO from your AppDatabase
+                val database = AppDatabase.getDatabase(context.applicationContext)
+                val instance = TaskRepository(database.taskDao())
                 INSTANCE = instance
                 instance
             }
