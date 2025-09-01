@@ -26,10 +26,6 @@ interface TaskDao {
     @Query("SELECT * FROM tasks ORDER BY scheduledTimeMillis ASC")
     fun getAllTasks(): Flow<List<Task>>
 
-    // This function should return a Flow<List<Task>> and NOT be suspend
-    @Query("SELECT * FROM tasks WHERE scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC")
-    fun getUpcomingTasks(currentTimeMillis: Long): Flow<List<Task>>
-
     // This function should return a Flow<Task?> and NOT be suspend
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     fun getTaskById(taskId: Long): Flow<Task?> // Corrected return type and removed suspend
@@ -51,12 +47,15 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE status != 'COMPLETED' AND scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC") // Added AND scheduledTimeMillis > :currentTimeMillis
     fun getPotentiallyUpcomingTasks(currentTimeMillis: Long): Flow<List<Task>>
 
-
-
     @Query("SELECT * FROM tasks WHERE status = 'COMPLETED' ORDER BY scheduledTimeMillis DESC")
     fun getCompletedTasks(): Flow<List<Task>>
 
     // You might also want a query to get all non-completed tasks sorted by priority then time
     @Query("SELECT * FROM tasks WHERE status != 'COMPLETED' ORDER BY priority ASC, scheduledTimeMillis ASC")
     fun getAllActiveTasksSorted(): Flow<List<Task>>
+
+    // This function should return a Flow<List<Task>> and NOT be suspend
+    // The conflicting overload was removed, and dueDate was changed to scheduledTimeMillis
+    @Query("SELECT * FROM tasks WHERE scheduledTimeMillis > :currentTimeMillis ORDER BY scheduledTimeMillis ASC LIMIT :limit")
+    abstract fun getUpcomingTasks(currentTimeMillis: Long, limit: Int): Flow<List<Task>>
 }

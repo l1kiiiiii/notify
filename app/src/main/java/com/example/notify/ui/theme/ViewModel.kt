@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.notify.NotificationScheduler
-import com.example.notify.data.Priority
 import com.example.notify.data.Task
 import com.example.notify.data.TaskDao
 import com.example.notify.data.TaskStatus
@@ -23,14 +22,17 @@ import java.util.Calendar
 class TaskViewModel(private val taskDao: TaskDao, private val context: Context) : ViewModel() {
 
     // States for search queries
-    private val _searchQuery = MutableStateFlow("") // Renamed from _allTasksSearchQuery
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow() // Renamed from allTasksSearchQuery
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     private val _upcomingSearchQuery = MutableStateFlow("")
     val upcomingSearchQuery: StateFlow<String> = _upcomingSearchQuery.asStateFlow()
 
     private val _sortUpcomingByPriority = MutableStateFlow(false)
     val sortUpcomingByPriority: StateFlow<Boolean> = _sortUpcomingByPriority.asStateFlow()
+
+    // Define a constant for the limit of upcoming tasks
+    private val UPCOMING_TASKS_DISPLAY_LIMIT = 5 // Example: Show 5 upcoming tasks
 
     // Flow of all tasks from the database
     private val _allTasks: StateFlow<List<Task>> = taskDao.getAllTasks().stateIn(
@@ -49,7 +51,11 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
     )
 
     // Flow of upcoming tasks from the database
-    private val _upcomingTasks: StateFlow<List<Task>> = taskDao.getUpcomingTasks(Calendar.getInstance().timeInMillis).stateIn(
+    // Assuming taskDao.getUpcomingTasks returns Flow<List<Task>>
+    private val _upcomingTasks: StateFlow<List<Task>> = taskDao.getUpcomingTasks(
+        Calendar.getInstance().timeInMillis,
+        UPCOMING_TASKS_DISPLAY_LIMIT // Use the defined limit
+    ).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         emptyList()
@@ -78,7 +84,10 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         viewModelScope.launch {
             val newRowId = taskDao.insertTask(task)
             if (newRowId > 0) {
-                val taskWithId = task.copy(id = newRowId)
+                // Assuming Task data class has an 'id' that can be updated.
+                // If 'id' is val, this might require taskDao.insertTask to return the full Task object
+                // or fetching the task by newRowId. For simplicity, assuming copy works or ID is handled.
+                val taskWithId = task.copy(id = newRowId) // Ensure 'id' in Task is a 'var' or handle appropriately
                 NotificationScheduler.scheduleNotification(context, taskWithId, newRowId)
             }
         }
@@ -112,7 +121,7 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         }
     }
 
-    fun updateSearchQuery(query: String) { // Renamed from updateAllTasksSearchQuery
+    fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
 
@@ -126,8 +135,8 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         } else {
             tasks.filter {
                 it.title.contains(query, ignoreCase = true) ||
-                        it.details.contains(query, ignoreCase = true) ||
-                        it.category.contains(query, ignoreCase = true)
+                        (it.details?.contains(query, ignoreCase = true) ?: false) || // Handle nullable details
+                        (it.category?.contains(query, ignoreCase = true) ?: false)   // Handle nullable category
             }
         }
     }

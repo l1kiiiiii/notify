@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">notify</string>
+    <string name="task_overview_widget_description">Displays a summary of upcoming tasks.</string>
 </resources>
