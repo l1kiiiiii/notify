@@ -38,7 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberCoroutineScope // Kept for potential future use
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +54,7 @@ import com.example.notify.ui.viewmodel.TaskViewModel
 import java.util.Calendar
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Create(
@@ -68,54 +69,46 @@ fun Create(
     var selectedDate by remember { mutableStateOf<Calendar?>(null) }
     var selectedTime by remember { mutableStateOf<Calendar?>(null) }
     var selectedCategory by remember { mutableStateOf(categories[0]) }
-    // FIX: Declare the missing state variable for the dropdown menu
     var expandedCategoryDropdown by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val calendar = Calendar.getInstance()
-    val coroutineScope = rememberCoroutineScope()
+    // val coroutineScope = rememberCoroutineScope() // Declared but not used in this logic
 
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
             Log.d("Permissions", "POST_NOTIFICATIONS permission granted")
+            // After permission is granted, ideally re-trigger the scheduling logic
+            // For simplicity, current logic might require user to click "Save Task" again
+            // or we'd need to store the pending action.
         } else {
             Log.d("Permissions", "POST_NOTIFICATIONS permission denied")
             Toast.makeText(context, "Notification permission denied. Notifications are needed for reminders.", Toast.LENGTH_LONG).show()
         }
     }
 
-    // Function containing the core task scheduling logic
-    fun scheduleTaskLogic() {
-        Log.d("CreateScreen", "Executing scheduleTaskLogic")
-        // FIX: Reorder the check logic to be more intuitive
-        if (taskTitle.isNotBlank() && selectedDate != null && selectedTime != null) {
-            val taskCalendar = Calendar.getInstance().apply {
-                set(
-                    selectedDate!!.get(Calendar.YEAR),
-                    selectedDate!!.get(Calendar.MONTH),
-                    selectedDate!!.get(Calendar.DAY_OF_MONTH)
-                )
-                set(Calendar.HOUR_OF_DAY, selectedTime!!.get(Calendar.HOUR_OF_DAY))
-                set(Calendar.MINUTE, selectedTime!!.get(Calendar.MINUTE))
-                set(Calendar.SECOND, 0)
-            }
-
+    // Function containing the core task saving logic
+    fun scheduleTaskLogic(timeInMillisForNotification: Long? = null) {
+        Log.d("CreateScreen", "Executing scheduleTaskLogic. Timed: ${timeInMillisForNotification != null}")
+        // Title check is primarily done in scheduleTaskWithPermissionCheck
+        // but as a safeguard, it's fine here too if called directly.
+        if (taskTitle.isNotBlank()) {
             val task = Task(
                 title = taskTitle,
                 details = taskDetails,
-                scheduledTimeMillis = taskCalendar.timeInMillis,
+                scheduledTimeMillis = timeInMillisForNotification,
                 category = selectedCategory
             )
 
             taskViewModel.insertTask(task)
-            // 🔹 Tell HomeScreen to refresh
             navController.previousBackStackEntry
                 ?.savedStateHandle
                 ?.set("taskCreated", true)
 
-            Toast.makeText(context, "Task scheduled!", Toast.LENGTH_SHORT).show()
+            val message = if (timeInMillisForNotification != null) "Task scheduled!" else "Task saved!"
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
             taskTitle = ""
             taskDetails = ""
@@ -125,50 +118,74 @@ fun Create(
 
             onNavigateBack()
         } else {
-            Toast.makeText(context, "Please fill all fields and select a valid date/time", Toast.LENGTH_SHORT).show()
+            // This case should ideally be caught by scheduleTaskWithPermissionCheck
+            Toast.makeText(context, "Please fill in the task title", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // Function to check permissions and then call scheduleTaskLogic
+    // Function to check permissions (if needed) and then call scheduleTaskLogic
     fun scheduleTaskWithPermissionCheck() {
-        Log.d("CreateScreen", "Checking permissions before scheduling")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // For POST_NOTIFICATIONS (API 33+)
-            when {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
-                    Log.d("CreateScreen", "POST_NOTIFICATIONS already granted. Checking exact alarm.")
+        Log.d("CreateScreen", "scheduleTaskWithPermissionCheck called")
+        if (taskTitle.isBlank()) {
+            Toast.makeText(context, "Please fill in the task title", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (selectedDate != null && selectedTime != null) {
+            Log.d("CreateScreen", "Date and Time selected. Proceeding with timed task logic and permission checks.")
+            val taskCalendar = Calendar.getInstance().apply {
+                set(selectedDate!!.get(Calendar.YEAR), selectedDate!!.get(Calendar.MONTH), selectedDate!!.get(Calendar.DAY_OF_MONTH))
+                set(Calendar.HOUR_OF_DAY, selectedTime!!.get(Calendar.HOUR_OF_DAY))
+                set(Calendar.MINUTE, selectedTime!!.get(Calendar.MINUTE))
+                set(Calendar.SECOND, 0)
+            }
+            val timeInMillis = taskCalendar.timeInMillis
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // For POST_NOTIFICATIONS (API 33+)
+                when {
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
+                        Log.d("CreateScreen", "POST_NOTIFICATIONS already granted. Checking exact alarm.")
+                        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                            Log.d("CreateScreen", "canScheduleExactAlarms granted. Scheduling timed task.")
+                            scheduleTaskLogic(timeInMillis)
+                        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) { // Below S, no explicit exact alarm check via canScheduleExactAlarms for this flow
+                             Log.d("CreateScreen", "Below Android S, POST_NOTIFICATIONS granted. Scheduling timed task.")
+                             scheduleTaskLogic(timeInMillis)
+                        }else {
+                            Log.d("CreateScreen", "Exact alarm permission needed. Redirecting to settings.")
+                            Toast.makeText(context, "Please allow exact alarms for timely reminders in app settings.", Toast.LENGTH_LONG).show()
+                            val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                            context.startActivity(intent)
+                        }
+                    }
+                    else -> {
+                        Log.d("CreateScreen", "Requesting POST_NOTIFICATIONS permission.")
+                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+            } else { // Pre-API 33
+                Log.d("CreateScreen", "Pre-API 33. Checking exact alarm for timed task.")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // For SCHEDULE_EXACT_ALARM (API 31+)
                     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                     if (alarmManager.canScheduleExactAlarms()) {
-                        Log.d("CreateScreen", "canScheduleExactAlarms granted. Scheduling task.")
-                        scheduleTaskLogic()
+                        Log.d("CreateScreen", "canScheduleExactAlarms granted (Pre-API 33). Scheduling timed task.")
+                        scheduleTaskLogic(timeInMillis)
                     } else {
-                        Log.d("CreateScreen", "Exact alarm permission needed. Redirecting to settings.")
+                        Log.d("CreateScreen", "Exact alarm permission needed (Pre-API 33). Redirecting to settings.")
                         Toast.makeText(context, "Please allow exact alarms for timely reminders in app settings.", Toast.LENGTH_LONG).show()
                         val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
                         context.startActivity(intent)
                     }
-                }
-                else -> {
-                    Log.d("CreateScreen", "Requesting POST_NOTIFICATIONS permission.")
-                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else { // Pre-API 31 (and Pre-API 33)
+                    Log.d("CreateScreen", "Pre-API 31. Scheduling timed task directly.")
+                    scheduleTaskLogic(timeInMillis)
                 }
             }
         } else {
-            Log.d("CreateScreen", "Pre-API 33. Checking exact alarm.")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // For SCHEDULE_EXACT_ALARM (API 31+)
-                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                if (alarmManager.canScheduleExactAlarms()) {
-                    Log.d("CreateScreen", "canScheduleExactAlarms granted (Pre-API 33). Scheduling task.")
-                    scheduleTaskLogic()
-                } else {
-                    Log.d("CreateScreen", "Exact alarm permission needed (Pre-API 33). Redirecting to settings.")
-                    Toast.makeText(context, "Please allow exact alarms for timely reminders in app settings.", Toast.LENGTH_LONG).show()
-                    val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                    context.startActivity(intent)
-                }
-            } else {
-                Log.d("CreateScreen", "Pre-API 31 (and Pre-API 33). Scheduling task directly.")
-                scheduleTaskLogic()
-            }
+            // No Date and Time selected, save task without specific schedule/notification
+            Log.d("CreateScreen", "No Date and Time selected. Saving untimed task.")
+            scheduleTaskLogic() // Call with default null for timeInMillisForNotification
         }
     }
 
@@ -305,7 +322,6 @@ fun Create(
                             Log.d("CreateScreen", "Cancel button clicked")
                             taskTitle = ""
                             taskDetails = ""
-                            // FIX: Change taskCategory to selectedCategory
                             selectedCategory = categories[0]
                             selectedDate = null
                             selectedTime = null
@@ -337,13 +353,13 @@ class TaskViewModelFactory(private val context: Context) : androidx.lifecycle.Vi
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-// Create.kt
-@Preview(showBackground = true) // Keep your existing Preview annotation if you have one
+
+@Preview(showBackground = true)
 @Composable
 fun CreatePreview() {
-    val navController = rememberNavController() // Create a NavController for the preview
+    val navController = rememberNavController()
     Create(
-        navController = navController, // Pass it to the Create composable
-        onNavigateBack = { /* Handle back navigation for preview, e.g., log */ }
+        navController = navController,
+        onNavigateBack = { Log.d("CreatePreview", "Navigate back triggered") }
     )
 }

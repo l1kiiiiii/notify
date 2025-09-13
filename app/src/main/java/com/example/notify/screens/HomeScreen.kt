@@ -111,15 +111,12 @@ fun HomeScreen(
         initialSelectedDateMillis = taskToEdit?.scheduledTimeMillis
     )
 
-    // Reinitialize timePickerState when taskToEdit changes
     val timePickerState = rememberTimePickerState(
-        initialHour = taskToEdit?.let {
-            Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
-                .get(Calendar.HOUR_OF_DAY)
+        initialHour = taskToEdit?.scheduledTimeMillis?.let {
+            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.HOUR_OF_DAY)
         } ?: Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
-        initialMinute = taskToEdit?.let {
-            Calendar.getInstance().apply { timeInMillis = it.scheduledTimeMillis }
-                .get(Calendar.MINUTE)
+        initialMinute = taskToEdit?.scheduledTimeMillis?.let {
+            Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.MINUTE)
         } ?: Calendar.getInstance().get(Calendar.MINUTE)
     )
 
@@ -182,6 +179,18 @@ fun HomeScreen(
                                 editedDetails = currentTaskToEdit.details
                                 editedCategory = currentTaskToEdit.category
                                 editedScheduledTime = currentTaskToEdit.scheduledTimeMillis
+                                // Update DatePicker state when dialog opens
+                                datePickerState.selectedDateMillis = currentTaskToEdit.scheduledTimeMillis
+                                // Update TimePicker state when dialog opens
+                                currentTaskToEdit.scheduledTimeMillis?.let {
+                                    val cal = Calendar.getInstance().apply { timeInMillis = it }
+                                    timePickerState.hour = cal.get(Calendar.HOUR_OF_DAY)
+                                    timePickerState.minute = cal.get(Calendar.MINUTE)
+                                } ?: run {
+                                    val cal = Calendar.getInstance()
+                                    timePickerState.hour = cal.get(Calendar.HOUR_OF_DAY)
+                                    timePickerState.minute = cal.get(Calendar.MINUTE)
+                                }
                                 showEditDialog = true
                             },
                             onStatusClick = { newStatus ->
@@ -247,7 +256,7 @@ fun HomeScreen(
                                 title = editedTitle.trim(),
                                 details = editedDetails.trim(),
                                 category = if (editedCategory.isBlank()) "General" else editedCategory.trim(),
-                                scheduledTimeMillis = editedScheduledTime ?: task.scheduledTimeMillis
+                                scheduledTimeMillis = editedScheduledTime
                             )
                             taskViewModel.updateTask(updatedTask)
                             coroutineScope.launch {
@@ -276,8 +285,9 @@ fun HomeScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
+                        // datePickerState.selectedDateMillis is automatically updated
                         showDatePicker = false
-                        showTimePicker = true
+                        showTimePicker = true // Proceed to show time picker
                     }
                 ) {
                     Text("OK")
@@ -289,7 +299,7 @@ fun HomeScreen(
                 }
             }
         ) {
-            DatePicker(state = datePickerState)
+            DatePicker(state = datePickerState) // Uses the updated datePickerState
         }
     }
 
@@ -321,7 +331,7 @@ fun HomeScreen(
                 }
             }
         ) {
-            TimePicker(state = timePickerState)
+            TimePicker(state = timePickerState) // Uses the updated timePickerState
         }
     }
 }
@@ -353,8 +363,10 @@ fun TaskItem(
     onTaskClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
-    val formattedTime = dateFormat.format(Date(task.scheduledTimeMillis))
+    val scheduleDisplayMessage = task.scheduledTimeMillis?.let { millis ->
+        val dateFormat = SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault())
+        "Scheduled for: ${dateFormat.format(Date(millis))}"
+    } ?: "Not scheduled"
 
     var expanded by remember { mutableStateOf(false) }
 
@@ -392,7 +404,7 @@ fun TaskItem(
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "Category: ${task.category}", style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Scheduled for: $formattedTime", style = MaterialTheme.typography.bodySmall)
+            Text(text = scheduleDisplayMessage, style = MaterialTheme.typography.bodySmall)
         }
 
         Box {
@@ -464,4 +476,89 @@ fun TaskProgressIndicator(
             style = MaterialTheme.typography.bodyMedium
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun HomeScreenPreview() {
+    val navController = rememberNavController()
+    HomeScreen(navController = navController)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+fun TimePickerDialogPreview() {
+    TimePickerDialog(
+        onDismissRequest = {},
+        confirmButton = { Button(onClick = {}) { Text("OK") } },
+        dismissButton = { Button(onClick = {}) { Text("Cancel") } }
+    ) {
+        Text("This is the content of the time picker dialog.")
+    }
+}
+
+@Preview
+@Composable
+fun TaskItemPreview() {
+    val sampleTaskWithTime = Task(
+        id = 1L,
+        title = "Sample Task With Time",
+        details = "This is a detailed description.",
+        scheduledTimeMillis = System.currentTimeMillis() + 3600000, // 1 hour from now
+        category = "Work",
+        status = TaskStatus.UPCOMING
+    )
+    val sampleTaskWithoutTime = Task(
+        id = 2L,
+        title = "Sample Task Without Time",
+        details = "No specific schedule.",
+        scheduledTimeMillis = null,
+        category = "Personal",
+        status = TaskStatus.ACTIVE
+    )
+    Column {
+        TaskItem(
+            task = sampleTaskWithTime,
+            onStatusClick = {},
+            onEditClick = {},
+            onDeleteClick = {},
+            onTaskClick = {}
+        )
+        TaskItem(
+            task = sampleTaskWithoutTime,
+            onStatusClick = {},
+            onEditClick = {},
+            onDeleteClick = {},
+            onTaskClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun TaskProgressIndicatorUpcomingPreview() {
+    TaskProgressIndicator(
+        status = TaskStatus.UPCOMING,
+        onStatusClick = {}
+    )
+}
+
+@Preview
+@Composable
+fun TaskProgressIndicatorActivePreview() {
+    TaskProgressIndicator(
+        status = TaskStatus.ACTIVE,
+        onStatusClick = {}
+    )
+}
+
+@Preview
+@Composable
+fun TaskProgressIndicatorCompletedPreview() {
+    TaskProgressIndicator(
+        status = TaskStatus.COMPLETED,
+        onStatusClick = {}
+    )
 }

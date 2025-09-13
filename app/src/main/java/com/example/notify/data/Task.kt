@@ -9,7 +9,7 @@ data class Task(
     val id: Long = 0L,
     val title: String,
     val details: String,
-    val scheduledTimeMillis: Long,
+    val scheduledTimeMillis: Long? = null,
     val category: String = "General",
     val priority: Priority = Priority.LOW,
     val status: TaskStatus = TaskStatus.UPCOMING

@@ -18,6 +18,11 @@ object NotificationScheduler {
 
     @SuppressLint("ScheduleExactAlarm")
     fun scheduleNotification(context: Context, task: Task, requestCode: Long) { // Added requestCode: Long
+        if (task.scheduledTimeMillis == null) {
+            Log.d("NotificationScheduler", "Task ID: ${task.id} has no scheduled time. Notification not scheduled.")
+            return
+        }
+
         Log.d("NotificationScheduler", "Scheduling notification for task ID: ${task.id} with requestCode: $requestCode at ${java.util.Date(task.scheduledTimeMillis)}")
 
         createNotificationChannel(context)
@@ -47,11 +52,12 @@ object NotificationScheduler {
 
         // Schedule the alarm
         val currentTime = System.currentTimeMillis()
+        // The check for task.scheduledTimeMillis != null is now at the beginning of the function
         if (task.scheduledTimeMillis > currentTime) {
             try {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
-                    task.scheduledTimeMillis,
+                    task.scheduledTimeMillis, // This is now safe due to the null check above
                     pendingIntent
                 )
                 Log.d("NotificationScheduler", "setExactAndAllowWhileIdle called for task ID: ${task.id} with requestCode: $requestCode")
@@ -62,7 +68,7 @@ object NotificationScheduler {
             }
             Log.d("NotificationScheduler", "Alarm scheduling attempt finished for task ID: ${task.id} with requestCode: $requestCode")
         } else {
-            Log.d("NotificationScheduler", "Task ID ${task.id} scheduled in the past, not scheduling alarm.")
+            Log.d("NotificationScheduler", "Task ID ${task.id} scheduled in the past (or time is null), not scheduling alarm.")
         }
     }
 
