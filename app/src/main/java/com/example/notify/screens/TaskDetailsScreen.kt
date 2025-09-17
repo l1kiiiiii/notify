@@ -3,7 +3,7 @@ package com.example.notify.screens
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack // Updated import
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +34,7 @@ fun TaskDetailsScreen(
         factory = TaskViewModelFactory(LocalContext.current)
     )
 ) {
-    val taskState by taskViewModel.getTaskById(taskId).collectAsState(initial = null) // Rename the delegated property
+    val taskState by taskViewModel.getTaskById(taskId).collectAsState(initial = null)
 
     Scaffold(
         topBar = {
@@ -42,17 +42,20 @@ fun TaskDetailsScreen(
                 title = { Text("Task Details") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { // Call the lambda on back button click
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") // Updated icon
                     }
                 }
             )
         }
     ) { innerPadding ->
-        taskState?.let { task -> // Introduce a local variable 'task'
+        taskState?.let { task ->
             Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
                 Text("Title: ${task.title}")
                 Text("Details: ${task.details}")
-                Text("Scheduled for: ${SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(task.scheduledTimeMillis))}")
+                val scheduleText = task.scheduledTimeMillis?.let {
+                    "Scheduled for: ${SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(it))}"
+                } ?: "Not scheduled"
+                Text(scheduleText)
             }
         }
     }
@@ -62,14 +65,37 @@ fun TaskDetailsScreen(
 @Preview
 @Composable
 fun TaskDetailsScreenPreview() {
-    val task = Task(
+    // For preview purposes, creating a mock TaskViewModel or providing a sample task is fine.
+    // Here we simulate a task being passed.
+    val sampleTaskWithTime = Task(
         id = 1L,
-        title = "Sample Task",
+        title = "Sample Task with Time",
         details = "This is a sample task description.",
         scheduledTimeMillis = System.currentTimeMillis() + 3600000 // 1 hour from now
     )
-    val taskViewModel: TaskViewModel = viewModel(
-        factory = TaskViewModelFactory(LocalContext.current)
+    val sampleTaskWithoutTime = Task(
+        id = 2L,
+        title = "Sample Task without Time",
+        details = "This task has no specific schedule.",
+        scheduledTimeMillis = null
     )
-    TaskDetailsScreen(taskId = task.id, onNavigateBack = {}, taskViewModel = taskViewModel)
+
+    // In a real scenario, the ViewModel would provide the task.
+    // For preview, we can directly render the Column content or mock the ViewModel state.
+    // For simplicity in preview, we'll just show one variant.
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text("Title: ${sampleTaskWithTime.title}")
+        Text("Details: ${sampleTaskWithTime.details}")
+        val scheduleTextWithTime = sampleTaskWithTime.scheduledTimeMillis?.let {
+            "Scheduled for: ${SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(it))}"
+        } ?: "Not scheduled"
+        Text(scheduleTextWithTime)
+
+        Text("\nTitle: ${sampleTaskWithoutTime.title}")
+        Text("Details: ${sampleTaskWithoutTime.details}")
+        val scheduleTextWithoutTime = sampleTaskWithoutTime.scheduledTimeMillis?.let {
+            "Scheduled for: ${SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault()).format(Date(it))}"
+        } ?: "Not scheduled"
+        Text(scheduleTextWithoutTime)
+    }
 }

@@ -21,8 +21,7 @@ import java.util.Calendar
 
 class TaskViewModel(private val taskDao: TaskDao, private val context: Context) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    // Removed: _searchQuery and searchQuery for general tasks
 
     private val _upcomingSearchQuery = MutableStateFlow("")
     val upcomingSearchQuery: StateFlow<String> = _upcomingSearchQuery.asStateFlow()
@@ -38,13 +37,8 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         emptyList()
     )
 
-    val filteredTasks: StateFlow<List<Task>> = combine(_allTasks, searchQuery) { tasks, query ->
-        filterTasks(tasks, query)
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5000),
-        emptyList()
-    )
+    // Updated: filteredTasks now directly exposes all tasks without general search filtering
+    val filteredTasks: StateFlow<List<Task>> = _allTasks
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val filteredUpcomingTasks: StateFlow<List<Task>> = combine(
@@ -52,7 +46,7 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         upcomingSearchQuery,
         sortUpcomingByPriority
     ) { tasks, query, sortByPriority ->
-        val filtered = filterTasks(tasks, query)
+        val filtered = filterTasks(tasks, query) // filterTasks is still used here
         if (sortByPriority) {
             filtered.sortedWith(compareBy<Task> { it.priority }.thenBy { it.scheduledTimeMillis })
         } else {
@@ -101,7 +95,6 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
             task?.let {
                 val updatedTask = when (newStatus) {
                     TaskStatus.COMPLETED -> it.copy(status = newStatus)
-                    // Removed IN_PROGRESS case as it no longer exists
                     else -> it.copy(status = determineTaskStatus(it.scheduledTimeMillis))
                 }
                 taskDao.updateTask(updatedTask)
@@ -120,14 +113,13 @@ class TaskViewModel(private val taskDao: TaskDao, private val context: Context) 
         }
     }
 
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
+    // Removed: updateSearchQuery function for general tasks
 
     fun updateUpcomingSearchQuery(query: String) {
         _upcomingSearchQuery.value = query
     }
 
+    // filterTasks is kept as it's used by filteredUpcomingTasks
     private fun filterTasks(tasks: List<Task>, query: String): List<Task> {
         return if (query.isBlank()) {
             tasks
