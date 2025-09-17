@@ -76,7 +76,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "task_database"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4) // Added MIGRATION_3_4
-                    .fallbackToDestructiveMigrationOnDowngrade() // CORRECTED: Allows destructive downgrade
+                    .fallbackToDestructiveMigrationOnDowngrade(false) // CORRECTED: Allows destructive downgrade
                     // .fallbackToDestructiveMigration() // Keep commented out if using manual migrations
                     .build()
                 INSTANCE = instance

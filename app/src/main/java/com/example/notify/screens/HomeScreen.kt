@@ -2,6 +2,7 @@ package com.example.notify.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assignment // Correct import
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -35,33 +37,30 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-// import androidx.compose.material3.TopAppBar // TopAppBar not used in this version
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-// import androidx.compose.runtime.LaunchedEffect // LaunchedEffect not used
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateOf // Correct function
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+// import androidx.compose.ui.graphics.vector.ImageVector // Not strictly needed if Icons.Filled.Assignment is used directly
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-// import androidx.lifecycle.liveData // liveData not directly used
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-// import com.example.notify.MainScreen // MainScreen not used
 import com.example.notify.data.Task
 import com.example.notify.data.TaskStatus
-import com.example.notify.ui.viewmodel.TaskViewModel
+import com.example.notify.ui.viewmodel.TaskViewModel // Correct import path
 import com.example.notify.ui.viewmodel.TaskViewModelFactory
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -87,16 +86,14 @@ fun HomeScreen(
                 savedStateHandle?.set("taskCreated", false) // Reset the flag
             }
         }
-
         taskCreatedLiveData?.observeForever(observer)
-
         onDispose {
             taskCreatedLiveData?.removeObserver(observer)
         }
     }
 
-    val allTasks by taskViewModel.filteredTasks.collectAsState() // This now gets all tasks directly
-    // Removed: val searchQuery by taskViewModel.searchQuery.collectAsState()
+    // Ensure TaskViewModel is resolved and filteredTasks has a clear type (e.g., StateFlow<List<Task>>)
+    val allTasks: List<Task> by taskViewModel.filteredTasks.collectAsState()
 
     var showEditDialog by remember { mutableStateOf(false) }
     var taskToEdit by remember { mutableStateOf<Task?>(null) }
@@ -108,7 +105,6 @@ fun HomeScreen(
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = taskToEdit?.scheduledTimeMillis
     )
-
     val timePickerState = rememberTimePickerState(
         initialHour = taskToEdit?.scheduledTimeMillis?.let {
             Calendar.getInstance().apply { timeInMillis = it }.get(Calendar.HOUR_OF_DAY)
@@ -132,18 +128,39 @@ fun HomeScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 8.dp) // Added some vertical padding
+                .padding(horizontal = 4.dp, vertical = 8.dp)
         ) {
-            // Removed: OutlinedTextField for search
-
             if (allTasks.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .weight(1f)
+                        .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No tasks scheduled yet.") // Updated text
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Assignment,
+                            contentDescription = "No tasks icon",
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Text(
+                            text = "No tasks yet!",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Add a task to see it here.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 LazyColumn(
@@ -151,7 +168,7 @@ fun HomeScreen(
                         .fillMaxSize()
                         .weight(1f)
                 ) {
-                    items(allTasks) { task ->
+                    items(allTasks) { task -> // Ensure 'task' here is of type Task
                         TaskItem(
                             task = task,
                             onDeleteClick = { taskToDelete ->
@@ -287,7 +304,7 @@ fun HomeScreen(
     }
 
     if (showTimePicker) {
-        TimePickerDialog(
+        TimePickerDialog( // This is your custom TimePickerDialog
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(
@@ -313,25 +330,25 @@ fun HomeScreen(
                     Text("Cancel")
                 }
             }
-        ) {
-            TimePicker(state = timePickerState)
+        ) { // Content for your custom TimePickerDialog
+            TimePicker(state = timePickerState) // The actual Material 3 TimePicker
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TimePickerDialog(
+fun TimePickerDialog( // Your custom wrapper
     title: String = "Select Time",
     onDismissRequest: () -> Unit,
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable () -> Unit,
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit // This is where the M3 TimePicker will go
 ) {
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = { Text(title) },
-        text = { content() },
+        text = { content() }, // Pass the M3 TimePicker as content here
         confirmButton = confirmButton,
         dismissButton = dismissButton
     )
@@ -351,7 +368,7 @@ fun TaskItem(
         "Scheduled for: ${dateFormat.format(Date(millis))}"
     } ?: "Not scheduled"
 
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) } // Corrected: mutableStateOf
 
     Row(
         modifier = modifier
@@ -366,7 +383,7 @@ fun TaskItem(
                 val newStatus = when (task.status) {
                     TaskStatus.UPCOMING -> TaskStatus.ACTIVE
                     TaskStatus.ACTIVE -> TaskStatus.COMPLETED
-                    TaskStatus.COMPLETED -> TaskStatus.ACTIVE
+                    TaskStatus.COMPLETED -> TaskStatus.ACTIVE 
                 }
                 onStatusClick(newStatus)
             }
@@ -466,6 +483,8 @@ fun TaskProgressIndicator(
 @Composable
 fun HomeScreenPreview() {
     val navController = rememberNavController()
+    // You might need a preview-specific TaskViewModel or mock data here
+    // For simplicity, this will likely show the "No tasks" screen unless you provide a ViewModel with data.
     HomeScreen(navController = navController)
 }
 
@@ -491,7 +510,8 @@ fun TaskItemPreview() {
         details = "This is a detailed description.",
         scheduledTimeMillis = System.currentTimeMillis() + 3600000, // 1 hour from now
         category = "Work",
-        status = TaskStatus.UPCOMING
+        status = TaskStatus.UPCOMING,
+        priority = com.example.notify.data.Priority.HIGH // Assuming Priority enum exists
     )
     val sampleTaskWithoutTime = Task(
         id = 2L,
@@ -499,7 +519,8 @@ fun TaskItemPreview() {
         details = "No specific schedule.",
         scheduledTimeMillis = null,
         category = "Personal",
-        status = TaskStatus.ACTIVE
+        status = TaskStatus.ACTIVE,
+        priority = com.example.notify.data.Priority.MEDIUM // Assuming Priority enum exists
     )
     Column {
         TaskItem(
